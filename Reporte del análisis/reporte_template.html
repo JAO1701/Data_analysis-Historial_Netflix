@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análisis de Historial de Visualización de Netflix</title>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <style>
+        /* Estilos Generales */
+        body {
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            margin: 0; /* Eliminar margen por defecto del body */
+            padding: 20px;
+            background-color: #e9eff6; 
+            color: #212529; /* Texto oscuro para fondo claro */
+            line-height: 1.6;
+            min-height: 100vh; /* Asegura que el fondo cubra toda la altura */
+            box-sizing: border-box; /* Incluye padding en el cálculo de altura */
+        }
+
+        .container {
+            max-width: 1300px; 
+            margin: 20px auto; /* Centrar contenedor y añadir margen arriba/abajo */
+            background-color: #ffffff; 
+            padding: 30px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* Sombra suave */
+            border: 1px solid #dee2e6; 
+        }
+
+        h1 {
+            color: #0056b3; 
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em; 
+            font-weight: 700; 
+            /* Añade la transición para el efecto suave */
+            transition: color 0.3s ease, text-shadow 0.3s ease; 
+        }
+
+         h1:hover {
+            color: #007bff; 
+            text-shadow: 0 0 10px rgba(0, 123, 255, 0.5); 
+            cursor: pointer; /* Cambia el cursor para indicar interactividad*/
+        }
+
+
+        h2 {
+            color: #343a40; 
+            border-bottom: 2px solid #007bff; 
+            padding-bottom: 10px; 
+            margin-bottom: 20px; 
+            font-size: 1.8em;
+            font-weight: 600;
+        }
+
+        /* Estilos para Métricas Clave */
+        .metrics {
+            display: grid; /* Implementa Grid para las métricas */
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); /* Columnas flexibles, mínimo 180px */
+            gap: 15px; /* Espacio entre métricas */
+            margin-bottom: 40px;
+        }
+
+        .metric-box {
+            text-align: center;
+            padding: 20px;
+            border-radius: 8px;
+            background-color: #e9ecef; 
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05); 
+            transition: transform 0.3s ease, box-shadow 0.3s ease; /* Transición suave para transformación y sombra */
+            border: 1px solid #dee2e6; 
+        }
+
+         .metric-box:hover {
+             transform: translateY(-5px); /* Levantar un poco la caja al pasar el mouse */
+             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); 
+         }
+
+
+        .metric-value {
+            font-size: 2em; 
+            font-weight: bold;
+            color: #007bff; 
+            margin-bottom: 5px;
+        }
+
+        .metric-label {
+            font-size: 0.9em;
+            color: #6c757d; 
+        }
+
+        /* Estilos para Contenedores de Gráficos (Tarjetas) */
+        .chart-container {
+            margin-bottom: 40px;
+            padding: 25px;
+            border-radius: 12px;
+            background-color: #ffffff; /* Fondo blanco para las tarjetas de gráficos */
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.07); 
+            border: 1px solid #dee2e6; 
+        }
+
+        /* Estilos para Filas de Gráficos */
+        .chart-row {
+            display: grid; /* Implementa Grid para filas de gráficos */
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); /* Dos columnas flexibles en pantallas grandes */
+            gap: 25px; 
+            margin-bottom: 20px;
+        }
+
+        .chart-item {
+             box-sizing: border-box; /* Asegura que padding y border no aumenten el tamaño */
+        }
+
+
+        /* Estilos Responsivos*/
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            .container {
+                padding: 20px;
+                margin: 10px auto;
+            }
+            h1 {
+                font-size: 2em;
+            }
+            h2 {
+                 font-size: 1.5em;
+            }
+            .metrics {
+                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); /* Columnas más pequeñas para dispoositivos móviles */
+                gap: 10px;
+            }
+             .metric-box {
+                 padding: 15px;
+             }
+             .metric-value {
+                font-size: 1.5em;
+            }
+            .chart-row {
+                grid-template-columns: 1fr; /* Una columna en pantallas pequeñas */
+                gap: 20px;
+            }
+             .chart-container {
+                 padding: 15px;
+             }
+        }
+
+        /* RECORDATORIO: Para los colores DENTRO de los gráficos de ApexCharts */
+        /* El CSS anterior estiliza el HTML que RODEA los gráficos. */
+        /* Los colores de las BARRAS, LÍNEAS, TEXTO dentro del gráfico (ejes, títulos, leyendas)
+           se configuran en las OPCIONES de ApexCharts en el bloque <script>. */
+        
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Análisis de Historial de Visualización de Netflix</h1>
+
+        <div class="metrics">
+            <div class="metric-box">
+                <div class="metric-value">{{ total_vistas | default('N/A') }}</div>
+                <div class="metric-label">Total de Visualizaciones Registradas</div>
+            </div>
+            <div class="metric-box">
+                 <div class="metric-value">{{ total_duracion | default('N/A') }}</div>
+                 <div class="metric-label">Tiempo Total de Visualización</div>
+            </div>
+            <div class="metric-box">
+                <div class="metric-value">{{ titulos_unicos | default('N/A') }}</div>
+                <div class="metric-label">Títulos Principales Únicos Vistos</div>
+            </div>
+             <div class="metric-box">
+                <div class="metric-value">{{ primer_vista | default('N/A') }}</div>
+                <div class="metric-label">Primera Visualización</div>
+            </div>
+             <div class="metric-box">
+                <div class="metric-value">{{ ultima_vista | default('N/A') }}</div>
+                <div class="metric-label">Última Visualización</div>
+            </div>
+        </div>
+
+
+        <div class="chart-container">
+             <h2>Top 10 Series/Películas (por Conteo)</h2>
+             <div id="chart_top_titles_count"></div>
+        </div>
+
+         <div class="chart-container">
+             <h2>Top 10 Series/Películas (por Duración)</h2>
+             <div id="chart_top_titles_duration"></div>
+        </div>
+
+        <div class="chart-row">
+            <div class="chart-item chart-container">
+                <h2>Visualizaciones por Día</h2>
+                <div id="chart_views_day"></div>
+            </div>
+             <div class="chart-item chart-container">
+                <h2>Tiempo Total por Día (horas)</h2>
+                <div id="chart_duration_day"></div>
+            </div>
+        </div>
+
+         <div class="chart-row">
+            <div class="chart-item chart-container">
+                <h2>Visualizaciones por Hora</h2>
+                <div id="chart_views_hour"></div>
+            </div>
+            <div class="chart-item chart-container">
+                 <h2>Tiempo Total por Hora (horas)</h2>
+                 <div id="chart_duration_hour"></div>
+            </div>
+        </div>
+
+        <div class="chart-row">
+             <div class="chart-item chart-container">
+                 <h2>Visualizaciones por Perfil</h2>
+                 <div id="chart_views_profile"></div>
+             </div>
+             <div class="chart-item chart-container">
+                 <h2>Visualizaciones por Dispositivo</h2>
+                 <div id="chart_views_device"></div>
+             </div>
+        </div>
+
+         <div class="chart-container">
+             <h2>Visualizaciones por Año</h2>
+             <div id="chart_views_year"></div>
+        </div>
+
+        <script>
+            // Datos inyectados por Python (Jinja2)
+            var totalVistas = {{ total_vistas | tojson }};
+            var totalDuracion = {{ total_duracion | tojson }};
+            var primerVista = {{ primer_vista | tojson }};
+            var ultimaVista = {{ ultima_vista | tojson }};
+            var titulosUnicos = {{ titulos_unicos | tojson }};
+
+
+            var topTitlesCountData = {{ top_titles_count_data | tojson }};
+            var topTitlesDurationData = {{ top_titles_duration_data | tojson }};
+            var viewsDayData = {{ views_day_data | tojson }};
+            var durationDayData = {{ duration_day_data | tojson }};
+            var viewsHourData = {{ views_hour_data | tojson }};
+            var durationHourData = {{ duration_hour_data | tojson }};
+            var viewsProfileData = {{ views_profile_data | tojson }};
+            var viewsDeviceData = {{ views_device_data | tojson }};
+            var viewsYearData = {{ views_year_data | tojson }};
+
+
+            // --- Configuración de los Gráficos (ApexCharts) ---
+
+            // Configuración base para gráficos de barras/columnas para tema claro
+            var baseBarOptions = {
+                 chart: {
+                     foreColor: '#373d3f', // Color del texto del gráfico (ejes, leyendas, etc.)
+                     toolbar: { show: true, tools: { download: true, selection: false, zoom: true, zoomin: true, zoomout: true, pan: true, reset: true } }, // Mostrar barra de herramientas
+                     zoom: { enabled: true }
+                 },
+                 plotOptions: {
+                     bar: { horizontal: false, columnWidth: '55%' }
+                 },
+                 dataLabels: { enabled: false }, // Ocultar valores sobre las barras
+                 grid: {
+                     borderColor: '#e0e0e0', // Color de las líneas de la cuadrícula
+                     xaxis: { lines: { show: false } },
+                     yaxis: { lines: { show: true } }
+                 },
+                 yaxis: { title: { style: { color: '#373d3f'} }, labels: { style: { colors: '#373d3f'} } },
+                 xaxis: { title: { style: { color: '#373d3f'} }, labels: { style: { colors: '#373d3f'} } },
+                 title: { style: { color: '#343a40' } }, // Color del título del gráfico
+                 // Colores de las barras (definir paleta)
+                 colors: ['#007bff', '#ced4da', '#6c757d', '#adb5bd', '#dee2e6'], // Paleta para barras
+                 tooltip: { enabled: true, style: { color: '#212529', background: '#ffffff' } }, // Estilo del tooltip
+                 theme: { mode: 'light' }, // Tema claro explícito
+                 responsive: [{ // Opciones responsive para gráficos
+                     breakpoint: 768,
+                     options: {
+                         plotOptions: { bar: { columnWidth: '80%' } },
+                         chart: { height: 300 } // Reducir altura en móviles si es necesario
+                     }
+                 }]
+             };
+
+
+            // Gráfico 1: Top 10 Títulos (Conteo)
+            var options_top_titles_count = {
+              ...baseBarOptions, // Usar opciones base
+              chart: { ...baseBarOptions.chart, type: 'bar', height: 350 },
+              series: topTitlesCountData.series,
+              xaxis: { ...baseBarOptions.xaxis, categories: topTitlesCountData.categories },
+              yaxis: { ...baseBarOptions.yaxis, title: { text: 'Número de Visualizaciones' } },
+              title: { ...baseBarOptions.title, text: 'Top 10 Series/Películas (por Conteo)' }
+            };
+            // Verificar si hay datos antes de renderizar
+            if (topTitlesCountData && topTitlesCountData.series && topTitlesCountData.series.length > 0 && topTitlesCountData.series[0].data.length > 0) {
+                 new ApexCharts(document.querySelector("#chart_top_titles_count"), options_top_titles_count).render();
+            } else {
+                document.querySelector("#chart_top_titles_count").innerHTML = '<p style="text-align:center; color: #6c757d;">No hay datos suficientes para este gráfico.</p>';
+            }
+
+
+            // Gráfico 2: Top 10 Títulos (Duración)
+             var options_top_titles_duration = {
+               ...baseBarOptions,
+               chart: { ...baseBarOptions.chart, type: 'bar', height: 350 },
+               series: topTitlesDurationData.series,
+               xaxis: { ...baseBarOptions.xaxis, categories: topTitlesDurationData.categories },
+               yaxis: { ...baseBarOptions.yaxis, title: { text: 'Tiempo Total (horas)' }},
+               title: { ...baseBarOptions.title, text: 'Top 10 Series/Películas con Mayor Tiempo Total (horas)' },
+                tooltip: { // tooltip para mostrar horas
+                    enabled: true,
+                    y: {
+                        formatter: function(val) {
+                             if (typeof val === 'number') {
+                                return val.toFixed(2) + " horas"; // Mostrar 2 decimales para horas
+                            }
+                            return val;
+                        }
+                    },
+                     style: { color: '#212529', background: '#ffffff' }
+                }
+             };
+             if (topTitlesDurationData && topTitlesDurationData.series && topTitlesDurationData.series.length > 0 && topTitlesDurationData.series[0].data.length > 0) {
+                new ApexCharts(document.querySelector("#chart_top_titles_duration"), options_top_titles_duration).render();
+             } else {
+                 document.querySelector("#chart_top_titles_duration").innerHTML = '<p style="text-align:center; color: #6c757d;">No hay datos suficientes para este gráfico.</p>';
+             }
+
+
+            // Gráfico 3: Vistas por Día de la Semana (Conteo)
+            var options_views_day = {
+              ...baseBarOptions,
+              chart: { ...baseBarOptions.chart, type: 'bar', height: 300 },
+              series: viewsDayData.series,
+              xaxis: { ...baseBarOptions.xaxis, categories: viewsDayData.categories },
+              yaxis: { ...baseBarOptions.yaxis, title: { text: 'Número de Visualizaciones' } },
+              title: { ...baseBarOptions.title, text: 'Visualizaciones por Día de la Semana' }
+            };
+             if (viewsDayData && viewsDayData.series && viewsDayData.series.length > 0 && viewsDayData.series[0].data.length > 0) {
+                new ApexCharts(document.querySelector("#chart_views_day"), options_views_day).render();
+             } else {
+                document.querySelector("#chart_views_day").innerHTML = '<p style="text-align:center; color: #6c757d;">No hay datos suficientes para este gráfico.</p>';
+             }
+
+            // Gráfico 4: Tiempo Total por Día de la Semana (horas)
+             var options_duration_day = {
+               ...baseBarOptions,
+               chart: { ...baseBarOptions.chart, type: 'bar', height: 300 },
+               series: durationDayData.series,
+               xaxis: { ...baseBarOptions.xaxis, categories: durationDayData.categories },
+               yaxis: { ...baseBarOptions.yaxis, title: { text: 'Tiempo Total (horas)' }},
+               title: { ...baseBarOptions.title, text: 'Tiempo Total por Día de la Semana (horas)' },
+                tooltip: { // Tooltip para mostrar horas
+                    enabled: true,
+                    y: {
+                         formatter: function(val) {
+                            if (typeof val === 'number') {
+                                return val.toFixed(2) + " horas"; // Mostrar 2 decimales para horas
+                            }
+                            return val;
+                        }
+                    },
+                     style: { color: '#212529', background: '#ffffff' }
+                }
+             };
+             if (durationDayData && durationDayData.series && durationDayData.series.length > 0 && durationDayData.series[0].data.length > 0) {
+                new ApexCharts(document.querySelector("#chart_duration_day"), options_duration_day).render();
+             } else {
+                 document.querySelector("#chart_duration_day").innerHTML = '<p style="text-align:center; color: #6c757d;">No hay datos suficientes para este gráfico.</p>';
+             }
+
+
+            // Gráfico 5: Vistas por Hora del Día (Conteo)
+            var options_views_hour = {
+              ...baseBarOptions,
+              chart: { ...baseBarOptions.chart, type: 'bar', height: 300 },
+              series: viewsHourData.series,
+              xaxis: { ...baseBarOptions.xaxis, categories: viewsHourData.categories, title: { text: 'Hora del Día (0-23)' } },
+              yaxis: { ...baseBarOptions.yaxis, title: { text: 'Número de Visualizaciones' } },
+              title: { ...baseBarOptions.title, text: 'Visualizaciones por Hora del Día' }
+            };
+             if (viewsHourData && viewsHourData.series && viewsHourData.series.length > 0 && viewsHourData.series[0].data.length > 0) {
+                new ApexCharts(document.querySelector("#chart_views_hour"), options_views_hour).render();
+             } else {
+                 document.querySelector("#chart_views_hour").innerHTML = '<p style="text-align:center; color: #6c757d;">No hay datos suficientes para este gráfico.</p>';
+             }
+
+
+            // Gráfico 6: Tiempo Total por Hora del Día (horas)
+             var options_duration_hour = {
+               ...baseBarOptions,
+               chart: { ...baseBarOptions.chart, type: 'bar', height: 300 },
+               series: durationHourData.series,
+               xaxis: { ...baseBarOptions.xaxis, categories: durationHourData.categories, title: { text: 'Hora del Día (0-23)' } },
+               yaxis: { ...baseBarOptions.yaxis, title: { text: 'Tiempo Total (horas)' }},
+               title: { ...baseBarOptions.title, text: 'Tiempo Total por Hora del Día (horas)' },
+                tooltip: { // Tooltip para mostrar horas
+                    enabled: true,
+                    y: {
+                         formatter: function(val) {
+                             if (typeof val === 'number') {
+                                return val.toFixed(2) + " horas"; // Mostrar 2 decimales para horas
+                            }
+                            return val;
+                        }
+                    },
+                     style: { color: '#212529', background: '#ffffff' }
+                }
+             };
+             if (durationHourData && durationHourData.series && durationHourData.series.length > 0 && durationHourData.series[0].data.length > 0) {
+                new ApexCharts(document.querySelector("#chart_duration_hour"), options_duration_hour).render();
+             } else {
+                 document.querySelector("#chart_duration_hour").innerHTML = '<p style="text-align:center; color: #6c757d;">No hay datos suficientes para este gráfico.</p>';
+             }
+
+
+            // Gráfico 7: Visualizaciones por Perfil (Pie Chart)
+            // Necesita opciones diferentes a las barras
+            var options_views_profile = {
+                chart: { type: 'pie', height: 350, foreColor: '#373d3f' }, // Color del texto del gráfico
+                series: viewsProfileData.series,
+                labels: viewsProfileData.labels,
+                title: { text: 'Distribución de Visualizaciones por Perfil', style: { color: '#343a40' } },
+                
+                responsive: [{
+                    breakpoint: 480,
+                    options: { chart: { width: 200 }, legend: { position: 'bottom' }}
+                }],
+                 theme: { mode: 'light' }, // Tema claro explícito
+                  tooltip: { enabled: true, style: { color: '#212529', background: '#ffffff' } } // Estilos del tooltip
+            };
+            // Condicional - Solo renderiza si hay datos de perfil
+            if(viewsProfileData && viewsProfileData.series && viewsProfileData.series.length > 0 && viewsProfileData.series.some(val => val > 0)) {
+                 new ApexCharts(document.querySelector("#chart_views_profile"), options_views_profile).render();
+            } else {
+                 document.querySelector("#chart_views_profile").innerHTML = '<p style="text-align:center; color: #6c757d;">No hay datos de visualización por perfil.</p>';
+            }
+
+
+            // Gráfico 8: Visualizaciones por Dispositivo (Bar Chart)
+            var options_views_device = {
+                 ...baseBarOptions,
+                 chart: { ...baseBarOptions.chart, type: 'bar', height: 350 },
+                 series: viewsDeviceData.series,
+                 xaxis: { ...baseBarOptions.xaxis, categories: viewsDeviceData.categories },
+                 yaxis: { ...baseBarOptions.yaxis, title: { text: 'Número de Visualizaciones' } },
+                 title: { ...baseBarOptions.title, text: 'Visualizaciones por Tipo de Dispositivo' }
+            };
+             // Solo renderiza si hay datos de dispositivo
+             if(viewsDeviceData && viewsDeviceData.series && viewsDeviceData.series.length > 0 && viewsDeviceData.series[0].data.length > 0) {
+                new ApexCharts(document.querySelector("#chart_views_device"), options_views_device).render();
+             } else {
+                 document.querySelector("#chart_views_device").innerHTML = '<p style="text-align:center; color: #6c757d;">No hay datos suficientes para este gráfico.</p>';
+             }
+
+
+            // Gráfico 9: Visualizaciones por Año (Bar Chart)
+            var options_views_year = {
+                 ...baseBarOptions,
+                 chart: { ...baseBarOptions.chart, type: 'bar', height: 350 },
+                 series: viewsYearData.series,
+                 xaxis: { ...baseBarOptions.xaxis, categories: viewsYearData.categories.map(String), title: { text: 'Año' } }, // Convierte años a string
+                 yaxis: { ...baseBarOptions.yaxis, title: { text: 'Número de Visualizaciones' } },
+                 title: { ...baseBarOptions.title, text: 'Visualizaciones por Año' }
+            };
+            if (viewsYearData && viewsYearData.series && viewsYearData.series.length > 0 && viewsYearData.series[0].data.length > 0) {
+                new ApexCharts(document.querySelector("#chart_views_year"), options_views_year).render();
+             } else {
+                 document.querySelector("#chart_views_year").innerHTML = '<p style="text-align:center; color: #6c757d;">No hay datos suficientes para este gráfico.</p>';
+             }
+
+
+        </script>
+    </div>
+</body>
+</html>
